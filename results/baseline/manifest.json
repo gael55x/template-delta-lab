@@ -1,0 +1,389 @@
+{
+  "command": [
+    "poc.py"
+  ],
+  "started_utc": "2026-09-30T23:16:21+00:00",
+  "python": "3.12.0 (main, Feb 25 2025, 23:07:19) [Clang 16.0.0 (clang-1600.0.26.6)]",
+  "implementation": "CPython",
+  "platform": "macOS-15.6.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "zlib_version": "1.2.12",
+  "zlib_runtime_version": "1.2.12",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "families": [
+    "sparse",
+    "heavy",
+    "random"
+  ],
+  "repeats": 3,
+  "methods": [
+    "raw",
+    "zlib",
+    "dedup_zlib"
+  ],
+  "constants": {
+    "PAGE": 4096,
+    "BLOCK": 64,
+    "ZLEVEL": 9,
+    "HEADER": 8,
+    "HASH_ENTRY": 32,
+    "REFCOUNT": 8,
+    "REF": 8,
+    "N_TEMPLATE": 64,
+    "N_SANDBOX": 8
+  },
+  "family_params": {
+    "sparse": {
+      "dirty": 0.5,
+      "blocks": 2,
+      "rewrite": 0.1,
+      "shared": 0.6,
+      "fresh": [
+        "struct",
+        "text"
+      ]
+    },
+    "heavy": {
+      "dirty": 0.75,
+      "blocks": 48,
+      "rewrite": 0.0,
+      "shared": 0.0,
+      "fresh": [
+        "struct",
+        "text",
+        "rand",
+        "rand"
+      ]
+    },
+    "random": {
+      "dirty": 1.0,
+      "blocks": 64,
+      "rewrite": 0.0,
+      "shared": 0.0,
+      "fresh": [
+        "rand"
+      ]
+    }
+  },
+  "template_accounting": "shared-resident: template bytes charged to no method (see PREREGISTRATION.md)",
+  "timing_note": "perf_counter_ns wall time of Python-level whole-corpus encode/decode; nondeterministic",
+  "corpora": [
+    {
+      "family": "sparse",
+      "seed": 0,
+      "corpus_sha256": "1670876614c06e7638bf1a53b1dcf52ec84e929a8cb1b3cb95e4b1d0aee22a15",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 221,
+      "excluded_cow_pages": 28,
+      "raw_bytes": 905216
+    },
+    {
+      "family": "sparse",
+      "seed": 1,
+      "corpus_sha256": "0c6bd7afbd48cf2343c80ab40a08ad15e31b7acc6d70068ec467424e4dd168b9",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 236,
+      "excluded_cow_pages": 27,
+      "raw_bytes": 966656
+    },
+    {
+      "family": "sparse",
+      "seed": 2,
+      "corpus_sha256": "94feaa216ac89485300f460a7170d28279a65cfd311f36e9a1a3a51f46fc7c59",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 238,
+      "excluded_cow_pages": 26,
+      "raw_bytes": 974848
+    },
+    {
+      "family": "sparse",
+      "seed": 3,
+      "corpus_sha256": "b7061cff98403699c01909b1cecb33947f3338f49bab72e13de3138616068f02",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 240,
+      "excluded_cow_pages": 22,
+      "raw_bytes": 983040
+    },
+    {
+      "family": "sparse",
+      "seed": 4,
+      "corpus_sha256": "9715b3b667e9d47e5d542d2cc3af3f4aed5ec3798c38867573ab93561569a814",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 242,
+      "excluded_cow_pages": 25,
+      "raw_bytes": 991232
+    },
+    {
+      "family": "sparse",
+      "seed": 5,
+      "corpus_sha256": "b1f0d2c5d1aba224fcd6f5b19dea8517038778a60fef149ff7dcaac0574f969c",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 232,
+      "excluded_cow_pages": 19,
+      "raw_bytes": 950272
+    },
+    {
+      "family": "sparse",
+      "seed": 6,
+      "corpus_sha256": "248c38b558921f88ee12ce70730a134b0bda15fb51bb7eb7b97ad3fc6f8b07be",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 249,
+      "excluded_cow_pages": 22,
+      "raw_bytes": 1019904
+    },
+    {
+      "family": "sparse",
+      "seed": 7,
+      "corpus_sha256": "1ac4c4574a2d3cdb7e3533d7ef6b9d1cbaa619327a637ba4f988896cf517e40d",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 216,
+      "excluded_cow_pages": 28,
+      "raw_bytes": 884736
+    },
+    {
+      "family": "sparse",
+      "seed": 8,
+      "corpus_sha256": "f8e44b40470933988fb16f6bb9ae68b7d7910ced15c25e601b33fa9e5f97951b",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 240,
+      "excluded_cow_pages": 28,
+      "raw_bytes": 983040
+    },
+    {
+      "family": "sparse",
+      "seed": 9,
+      "corpus_sha256": "a6524f4d123875e32d9076fe3f8d7a190f46cc925b5be1ecd2376e32ff398748",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 200,
+      "excluded_cow_pages": 22,
+      "raw_bytes": 819200
+    },
+    {
+      "family": "heavy",
+      "seed": 0,
+      "corpus_sha256": "c8efd201ab1cd9d76e64abccbee5854a5bae1371763fc1a1eb3084f30f11df64",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 392,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1605632
+    },
+    {
+      "family": "heavy",
+      "seed": 1,
+      "corpus_sha256": "b38b943d4f24435eb0ad85dbf596af64abfb916f4133a3312be19a6481db0260",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 376,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1540096
+    },
+    {
+      "family": "heavy",
+      "seed": 2,
+      "corpus_sha256": "b588d11d9fbb84cb77c4503eb1ef9c621bf6063cb60e65476428e2674ced19fd",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 392,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1605632
+    },
+    {
+      "family": "heavy",
+      "seed": 3,
+      "corpus_sha256": "9a60ffa095ba1f037f0460ef607b7511b28be360c38796c1810667394c687a1a",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 392,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1605632
+    },
+    {
+      "family": "heavy",
+      "seed": 4,
+      "corpus_sha256": "3d0290c6785c1680e0d5448f9e3a3fb21cff4b614798ff3e13370a19fba9b87f",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 385,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1576960
+    },
+    {
+      "family": "heavy",
+      "seed": 5,
+      "corpus_sha256": "a62348c37b41400bb4def801d16c093c2904949676b9264ee6344144089d4261",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 390,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1597440
+    },
+    {
+      "family": "heavy",
+      "seed": 6,
+      "corpus_sha256": "3ca2ec29b04ebd3007b0be74f1b0ee31e97a4fd6c910281cd7745827c6af2bd5",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 392,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1605632
+    },
+    {
+      "family": "heavy",
+      "seed": 7,
+      "corpus_sha256": "00d6840af3d2a7d4f672b1ef11b1fbd5c791b79a3142b4683faa69f6e6e08078",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 412,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1687552
+    },
+    {
+      "family": "heavy",
+      "seed": 8,
+      "corpus_sha256": "ce7bea3d30f4057fb901e934f72b58d08754deedffc9ec5e9f3d93e62d5931a5",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 395,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1617920
+    },
+    {
+      "family": "heavy",
+      "seed": 9,
+      "corpus_sha256": "d038a4eb5a266b552a5644fbeb62bb58e1ab8347d4ff666088dae0f944246fcb",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 393,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 1609728
+    },
+    {
+      "family": "random",
+      "seed": 0,
+      "corpus_sha256": "1350007a99f9ddf6948ae5a34386c3dd25acbce4c5743e45f35ccfd889a72a66",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    },
+    {
+      "family": "random",
+      "seed": 1,
+      "corpus_sha256": "eb182b5f1e69447b5d123c8cdb49f22f35f75cfbc2b6ddac984ece19e74bfc8b",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    },
+    {
+      "family": "random",
+      "seed": 2,
+      "corpus_sha256": "c005f6d39e666c20d79c29fd0f958820ba00c81f3f2cf0fe786659eea14db35a",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    },
+    {
+      "family": "random",
+      "seed": 3,
+      "corpus_sha256": "dfc76acf81e001d27a54f1d21070967436bb5d256500c628730e343614e6efce",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    },
+    {
+      "family": "random",
+      "seed": 4,
+      "corpus_sha256": "f7dcf73500cd2f53f22103395d257c177811703169829cee2f97fefeccf8cb06",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    },
+    {
+      "family": "random",
+      "seed": 5,
+      "corpus_sha256": "e05ec27b077e20c8b72e60aa44cad0157f4736c1a6dd04d12b09e4bf18f2dbcd",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    },
+    {
+      "family": "random",
+      "seed": 6,
+      "corpus_sha256": "74454850e8397b5208e50a7811a8928ecedda5f639081ec1390690ba28ae2d31",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    },
+    {
+      "family": "random",
+      "seed": 7,
+      "corpus_sha256": "0037e913d74962187b04cbd48b4dc7638e664320dcd5fc1377479d4e3de965eb",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    },
+    {
+      "family": "random",
+      "seed": 8,
+      "corpus_sha256": "0a3bae94834559ecdfa48f9fc3401c81e47386bbcd3a72dec0a9a100c4a222aa",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    },
+    {
+      "family": "random",
+      "seed": 9,
+      "corpus_sha256": "63c2889836d7873362277e132ecc2386471cce92c0758a770a7d6e33cee7a3f0",
+      "template_pages": 64,
+      "template_bytes": 262144,
+      "private_pages": 512,
+      "excluded_cow_pages": 0,
+      "raw_bytes": 2097152
+    }
+  ],
+  "sha256": {
+    "poc.py": "2cc1f40bf059d7cb3bb9c5ba9a62699e9e6f5427e0e1b035c90d77c8c93925d1",
+    "PREREGISTRATION.md": "543e0b0a3a9eb8e179329814f7e45b36146103471644133efa72bef1b0c785ee",
+    "raw.csv": "3f5ffdcf884f5d280724a1ea0cf01f51daef169c7f926ef7a3f08b2605b4dcdb",
+    "summary.csv": "e77b0c59754f8372572354859d5d5c781b30a8ed70ba88653b4f6cc0c16176f3"
+  }
+}
