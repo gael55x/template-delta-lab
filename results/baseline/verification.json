@@ -1,0 +1,24 @@
+{
+  "verified_at": "2026-09-30T23:18:32.881559+00:00",
+  "source_revision": "f55aeaf1240566e4e56521c04fb177cf4652e9b5",
+  "tests": 8,
+  "test_status": "passed in original and fresh local clone",
+  "rows_per_run": 270,
+  "stable_measurement_fields_match": true,
+  "corpora_match": 30,
+  "page_roundtrips_per_run": 102177,
+  "preregistration_sha256": "543e0b0a3a9eb8e179329814f7e45b36146103471644133efa72bef1b0c785ee",
+  "code_sha256": "2cc1f40bf059d7cb3bb9c5ba9a62699e9e6f5427e0e1b035c90d77c8c93925d1",
+  "raw_sha256": {
+    "original": "3f5ffdcf884f5d280724a1ea0cf01f51daef169c7f926ef7a3f08b2605b4dcdb",
+    "reproduction": "e2015e8eb03b9b335afabd2eb7d6dfbd5c31bb4ae848056375f5362c9b63158c"
+  },
+  "timing_fields": "excluded from equality comparison; expected to vary",
+  "secrets_review": "source, docs, manifest and CSV inspected; no credentials, account APIs, external code or datasets",
+  "license_review": "original MIT code; paper CC BY-NC-ND cited, no copied assets; dependencies stdlib only",
+  "limitations": [
+    "synthetic byte accounting, not OS RSS",
+    "fixed method order and no warmup, no timing speedup claim",
+    "POC and paper comparison not implemented yet"
+  ]
+}
