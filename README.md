@@ -1,103 +1,48 @@
-# w40-agentzip-template-delta-poc
+# Template deltas: savings depend on what you charge
 
-This is a synthetic benchmark scaffold that uses only the Python standard library. It targets one idea from AgentZip (arXiv:2609.11294v1, https://arxiv.org/abs/2609.11294): template-delta encoding of sandbox memory pages, described in section 4.2.2 of the paper.
+A small, original Python experiment inspired by [AgentZip's template-delta mechanism](https://arxiv.org/html/2609.11294v1). **Synthetic stored-byte accounting only; not OS memory savings or a reproduction of the paper.**
 
-**Today (2026-10-01) the baseline is implemented, tested and measured; see [BASELINE.md](BASELINE.md).** The template-delta POC is planned for Friday 2026-10-02 and is not implemented yet.
+On the frozen sparse family, min(raw, zlib, delta) saves a median **96.6005%** of private bytes versus **77.6488%** for exact dedup+zlib. But charge the full 256 KiB template to the POC and **it loses to the best baseline in all 10 seeds**. Heavy pages show a small shared-template advantage; random pages show none.
 
-This is original code, not a reproduction of the paper. It runs on synthetic pages, not real memory dumps. It makes no claims about OS RSS, restore latency, speedups or LLM behaviour.
+| Family | zlib saving | dedup+zlib saving | min_page saving | min_page saving with template charged |
+|---|---:|---:|---:|---:|
+| Sparse | 65.0306% | 77.6488% | 96.6005% | 69.6062% |
+| Heavy | 35.6466% | 34.6701% | 36.0656% | 19.5472% |
+| Random | 0% | -0.9766% | 0% | -12.5% |
 
-## Isolation
+Each cell is a median across 10 fixed seeds. Read [COMPARISON.md](COMPARISON.md) for paired deltas, ranges, wrong-template results, costs and limitations. Differences between these medians are not the paired statistics.
 
-- This directory sits beneath a parent git repository that has uncommitted changes. Nothing here reads or writes parent files.
-- `poc.py` refuses any `--out` that resolves outside this directory. It also refuses an `--out` that already exists and is not empty.
-- This directory has its own Git repository. Run Git commands here only; preserve the parent checkout and all its existing changes.
+## Run
 
-## Requirements
-
-Python 3.9 or later (for `random.randbytes`), standard library only. The benchmark uses no network access and no paid APIs.
-
-## Commands
+Standard library only. Python 3.9+ runs the benchmark; **Python 3.12.0 / zlib 1.2.12** reproduces the recorded environment. No network, dataset download or API key.
 
 ```sh
-cd w40-agentzip-template-delta-poc
-python3 test_poc.py      # stdlib unittest
-python3 poc.py --seeds 0 --families sparse --repeats 1 --out results/smoke   # quick smoke run
-python3 poc.py           # preregistered baseline: seeds 0..9, all families, 3 repeats -> results/baseline/
-python3 poc.py --help
+python3 test_poc.py
+python3 poc.py --out results/replay/primary
+python3 poc.py --wrong-template --out results/replay/wrong
+python3 verify_results.py results/replay/primary results/replay/wrong
 ```
 
-A relative `--out` resolves against the current directory, so run these commands from inside this directory.
+Output directories must be new or empty and inside this repository. A second identical command refuses to overwrite results. Timings vary; compare byte counts and corpus hashes. `verify_results.py` also checks committed results with no arguments. It is an independent assertion-based release check, not the codec implementation.
 
-Runtime is estimated, not measured: seconds to a few minutes on a laptop. Each corpus has 64 template pages and at most 512 private pages, about 2.25 MiB in total. Corpora are regenerated from their seeds rather than stored, and are identified by sha256.
+## Design
 
-## Outputs
+4096-byte pages, 64-byte blocks, 64 template pages, eight synthetic sandboxes; 10 seeds and three timing repeats. Copy-on-write identical pages are excluded equally. Five methods see the same input: raw, per-page zlib with admission, exact dedup+zlib with index/reference costs, bitmap+verbatim-block delta, and per-page minimum of raw/zlib/delta. Wrong-template tests shift the reference for encoding and decoding together. No candidate is tuned after measurement.
 
-Each run directory contains three files.
+A delta with two changed blocks costs 8 bytes of header + 8 bytes of bitmap + 128 bytes of changed blocks = 144 bytes. If an encoding does not save space, the page stays raw. [IMPLEMENTATION.md](IMPLEMENTATION.md) specifies template identity, tie order and modeled metadata. The template is free in the shared-resident scenario; the sensitivity charges all 262144 bytes to delta/min_page, including runs that select no deltas.
 
-- **`raw.csv`**: one row per family x seed x method x repeat. Each row has:
-  - the corpus sha256
-  - page counts: private, COW-excluded and template
-  - byte accounting: payload, header, index, ref and total
-  - saving %
-  - encode and decode wall-clock ns
-- **`summary.csv`**: recomputed by reading `raw.csv` back after it is written. For each family it gives the median and [min, max] across seeds of:
-  - saving %
-  - paired per-seed size deltas, in bytes and as % of private bytes
-  - per-seed median timings
-- **`manifest.json`**: provenance for the run:
-  - command and UTC start time
-  - Python, platform and zlib (compile and runtime) versions
-  - seeds, repeats, constants and family parameters
-  - per-corpus sha256
-  - sha256 of `poc.py`, `PREREGISTRATION.md`, `raw.csv` and `summary.csv`
+## Evidence
 
-## Baseline methods
+- [PREREGISTRATION.md](PREREGISTRATION.md): frozen before baseline measurements; hash retained unchanged.
+- [DEVIATIONS.md](DEVIATIONS.md): header clarification and corrected interpreter invocation.
+- [BASELINE.md](BASELINE.md) and [results/baseline](results/baseline): original three-method results.
+- [results/poc](results/poc) and [results/poc-wrong-template](results/poc-wrong-template): 900 raw rows, paired summaries and provenance.
+- [REVIEW.md](REVIEW.md): independent review and reproduction evidence.
 
-| method | cost charged per private page |
-|---|---|
-| raw | 4096 B resident |
-| zlib | zlib level 9 output plus an 8 B header. If that is not smaller than 4096 B, the page is admitted resident at 4096 B with no header. |
-| dedup_zlib | Exact match by sha256, with a full byte comparison on every hash hit. Each stored object pays the zlib-with-admission cost plus 32 B hash and 8 B refcount. Each duplicate page pays an 8 B reference. |
+Sixteen tests; 340590 page roundtrips per complete primary+control evaluation. The generator drives these results; none establish real memory usage, latency, sandbox capacity or a production benefit.
 
-Some rules apply to every method:
+## Authorship, cost and license
 
-- Template pages are treated as shared-resident and are charged to no method.
-- A page that is byte-identical to its template page counts as copy-on-write shared. It is excluded from the private set for every method.
+Claude Opus 5.5 led paper selection and authored the codec and tests. Codex independently reviewed source, evaluation, claims, licensing and secrets, executed the experiment, and wrote the artifact verifier and reports. Local benchmark API spend is $0; Claude's cumulative list-price estimate is $3.3712318, not an invoice. Codex review/electricity are unmeasured.
 
-The sparse family deliberately contains cross-sandbox exact duplicates, so that dedup is a real competitor and not a straw man.
-
-## Reproducibility
-
-- The same family and seed always give the same corpus sha256. The tests check this.
-- Byte sizes are asserted to be identical across repeats within a run.
-- Compressed sizes depend on the zlib build, which the manifest records. Only compare sizes across machines when their zlib versions match.
-- Wall-clock times are nondeterministic, Python-level measurements. Compare them only within a single run.
-
-## Friday plan (2026-10-02, bounded)
-
-Resume this repository through the due comparison milestone; checkpoint each verified transition. Hold only concretely blocked work.
-
-1. Hash `PREREGISTRATION.md` and compare the result with `results/baseline/manifest.json`. Record any edit, with its reason and the new hash, in `DEVIATIONS.md`.
-2. Add two methods to `poc.py`, exactly as defined in PREREGISTRATION.md:
-   - `delta`: a bitmap plus the changed blocks, with admission.
-   - `min_page`: the per-page minimum of delta, zlib and raw.
-   Do not add dictionaries, RLE or portfolios.
-3. Rerun the same seeds, families and repeats into `results/poc/`, and check that the corpus sha256s match today's baseline.
-4. Write `COMPARISON.md` with:
-   - the paired per-seed deltas against the best baseline for each seed
-   - median/range
-   - the template-charged sensitivity
-   - the descriptive wrong-template run
-
-Out of scope: UFFD, prefetching, schedulers, real sandboxes, zstd and statistical tests.
-
-## Costs
-
-- **Benchmark:** API spend is $0. No network or paid service is used, and compute is local CPU.
-- **Authoring and review:** the AI models used to write and review these files have their own costs. Claude CLI reports list-price estimates totaling $2.1829618 for the identity probe, research selection and baseline authoring. These are not subscription invoices. Codex review cost is unavailable; local electricity is unmeasured.
-
-## Citation and licensing
-
-- **Paper:** AgentZip, arXiv:2609.11294v1, https://arxiv.org/abs/2609.11294. Codex verified the exact version, date (10 September 2026) and CC BY-NC-ND 4.0 license against the primary arXiv HTML on 1 October 2026.
-- **Paper content:** no text, figures, code or data from the paper are copied. Descriptions here are paraphrases.
-- **Code in this directory:** MIT License, Copyright (c) 2026 Gaille Amolong (see LICENSE). That license does not cover the paper.
+Original code is [MIT](LICENSE), copyright 2026 Gaille Amolong. The referenced paper, arXiv:2609.11294v1, 10 September 2026, has its own CC BY-NC-ND 4.0 license. No paper prose, figures, upstream code, dataset or weights are redistributed.

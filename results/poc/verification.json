@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "runs": [
+    {
+      "rows": 450,
+      "corpora": 30,
+      "page_roundtrips": 170295,
+      "raw_sha256": "484df49960e57e8528c51f71c2da93c3b551a63441b4dab67b2f40ba42c04874",
+      "template_shift": 0
+    },
+    {
+      "rows": 450,
+      "corpora": 30,
+      "page_roundtrips": 170295,
+      "raw_sha256": "1b1e064a742089cca902fdeb0b32d1f3aeeb9574716b5887ba2fd8ddfd1d4238",
+      "template_shift": 1
+    }
+  ],
+  "baseline_rows_matched_per_run": 270,
+  "verified_at_utc": "2026-10-01T23:18:38.609608+00:00",
+  "source_revision": "200739fe3be67c18da573b2f2f8173723eb505fa",
+  "tests": 16,
+  "fresh_checkout": {
+    "tests": 16,
+    "matched": [
+      {
+        "run": "poc",
+        "stable_rows_matched": 450,
+        "replay_raw_sha256": "91876c4d69093c1e196e4c29dd5be02adc0cd209cc19a292ca0a478d5eeacd32"
+      },
+      {
+        "run": "poc-wrong-template",
+        "stable_rows_matched": 450,
+        "replay_raw_sha256": "66418c50422e3051fddefef105705fae06a3b385ce28b2504e3134683ede7134"
+      }
+    ]
+  },
+  "timing_comparison": "Excluded enc_ns/dec_ns; all other raw CSV fields equal"
+}
