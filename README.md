@@ -20,6 +20,9 @@ Each cell is a median across 10 fixed seeds. Read [COMPARISON.md](COMPARISON.md)
 
 Whiskers show the seed range, **not a confidence interval**. The second chart subtracts the best baseline within each seed before aggregation; its denominator is raw bytes. Charging adds the full 262144-byte template, conservatively even when no delta is selected. [Full-size SVGs and figure hashes](docs/figures) · [Four-perspective readiness review](docs/READINESS.md).
 
+
+Read the [technical walkthrough](docs/WALKTHROUGH.md) for the implementation, measured evidence, runnable examples and Mermaid diagrams. Proposed external integrations are labeled separately from implemented behavior.
+
 ## Run
 
 Standard library only. Python 3.9+ runs the benchmark; **Python 3.12.0 / zlib 1.2.12** reproduces the recorded environment. No network, dataset download or API key.

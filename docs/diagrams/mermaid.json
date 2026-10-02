@@ -1,0 +1,1 @@
+{"theme": "base", "themeVariables": {"fontFamily": "Arial", "fontSize": "18px", "primaryColor": "#edf6f5", "primaryTextColor": "#142b38", "primaryBorderColor": "#33857d", "lineColor": "#506775", "secondaryColor": "#f6f0e6", "tertiaryColor": "#f3f6f8"}, "flowchart": {"htmlLabels": false, "curve": "linear"}, "sequence": {"wrap": true, "useMaxWidth": false}}

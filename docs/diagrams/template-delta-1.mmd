@@ -1,0 +1,13 @@
+flowchart TD
+    IN[Changed pages from one synthetic corpus] --> BASE[Baselines — raw, zlib and exact dedup plus zlib]
+    IN --> CAND[Build raw, zlib and delta candidates]
+    TPL[(Shared template)] -->|needed for delta| CAND
+    CAND --> PICK[Select the smallest modeled cost]
+    CAND --> DELTA[Also evaluate delta-only policy]
+    BASE --> COST[Count payload and modeled metadata]
+    PICK --> COST
+    DELTA --> COST
+    COST --> COMP[Compare with and without full template charge]
+    PICK --> RESTORE[Restore pages from stored objects]
+    TPL -->|needed for delta objects| RESTORE
+    RESTORE --> CHECK[Check exact equality with input]

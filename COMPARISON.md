@@ -51,7 +51,7 @@ python3 poc.py --wrong-template --out results/replay/wrong
 python3 verify_results.py results/replay/primary results/replay/wrong
 ```
 
-Use Python 3.12.0 and zlib 1.2.12 to compare with committed measurements. The independent verifier requires these versions and asserts all 270 prior baseline rows' non-timing fields, 30 corpus hashes, full byte accounting, repeat stability and paired summaries. Each full run has 450 rows and 170295 page roundtrips; primary plus wrong-template total 900 rows and 340590 page roundtrips. Sixteen unit tests pass. Raw timings are retained and expected to vary.
+Use Python 3.12.0 and zlib 1.2.12 to compare with committed measurements. The independent verifier records runtime-version differences diagnostically and checks all 270 prior baseline rows' non-timing fields, 30 corpus hashes, full byte accounting, repeat stability and paired summaries. Each full run has 450 rows and 170295 page roundtrips; primary plus wrong-template total 900 rows and 340590 page roundtrips. Seventeen tests pass, including the added verifier regression. Raw timings are retained and expected to vary.
 
 ## Costs and limits
 
