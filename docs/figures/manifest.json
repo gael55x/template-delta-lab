@@ -1,0 +1,24 @@
+{
+  "generator": {
+    "path": "scripts/plot_results.py",
+    "sha256": "6cd0d4d5ed49a33d3a32bc2ad79859bb7b14486f720e7a60788c17d131c2ed0b"
+  },
+  "matplotlib": "3.10.3",
+  "outputs": {
+    "method-savings.png": "7725b68eb4595ffe1417677a3db86283a662966598276180b24b83b22c230681",
+    "method-savings.svg": "f0f921c7726939a37e76b7c97ad7f5e789c731c4207fc6e1bc96bfe4a9aac051",
+    "paired-min-page.png": "014793a6d0d84b2ee2468e9e9a1baf41aaa9be42474ec92d0d3d8aacf8abc090",
+    "paired-min-page.svg": "572fcf48b4308401e4fc2cb5281d8adabfd6d642508cc51838a85d3f2457c387"
+  },
+  "project": "template-delta-lab",
+  "sources": {
+    "results/poc-wrong-template/raw.csv": "1b1e064a742089cca902fdeb0b32d1f3aeeb9574716b5887ba2fd8ddfd1d4238",
+    "results/poc/raw.csv": "484df49960e57e8528c51f71c2da93c3b551a63441b4dab67b2f40ba42c04874"
+  },
+  "statistics": "median and min-max over seeds 0-9 of repeat-0 byte totals; denominator raw_bytes",
+  "verifier": {
+    "path": "verify_results.py",
+    "sha256": "87950243a4c9ba68ff3878c4069944e1d8a47fcc4e4e34ed022c303f6ed334a2",
+    "status": "passed"
+  }
+}
