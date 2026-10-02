@@ -1,5 +1,4 @@
 flowchart TD
-    subgraph PROP[Proposed integration, no snapshot importer yet]
         SNAP[Offline snapshot export] --> ADP[Adaptor into lab page input]
         TPL[Immutable versioned template] --> ADP
         MAP[Page to template index map] --> ADP
@@ -7,4 +6,3 @@ flowchart TD
         LAB --> GATE{Exact restore and full cost including template}
         GATE -->|fails| STOP[Keep the existing approach]
         GATE -->|passes| ENG[Later engine integration with RAM and latency tests]
-    end

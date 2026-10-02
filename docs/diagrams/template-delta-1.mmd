@@ -4,7 +4,7 @@ flowchart TD
     TPL[(Shared template)] -->|needed for delta| CAND
     CAND --> PICK[Select the smallest modeled cost]
     CAND --> DELTA[Also evaluate delta-only policy]
-    BASE --> COST[Count payload and modeled metadata]
+    BASE --> COST[Count payload, headers and indexes]
     PICK --> COST
     DELTA --> COST
     COST --> COMP[Compare with and without full template charge]

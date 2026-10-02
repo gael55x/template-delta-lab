@@ -3,11 +3,11 @@
   "renderer": "12.0.0",
   "outputs": {
     "measured-results.png": "853cbf233feaa01bfd9f5114be5af6ff680452040091ac944d919a08f4cd3256",
-    "template-delta-1.mmd": "ffaa43feba02a6618f885f794fd626c3a99c0b2e5dc5abce82b591f535fa0bb4",
-    "template-delta-1.png": "a65a00d42a918029e4973c1a75024e13462d849c5c403e01a9265ff21f2a15f1",
-    "template-delta-1.svg": "bdca43b2512e92e97bad974c03777f56b7dc5a00c204bfbcab8d35217a84f1a1",
-    "template-delta-2.mmd": "76d172b7512d3b22ef0efbba0af8dbc4e729ed55cebef52135e3f13bbead2064",
-    "template-delta-2.png": "b509c92980cdd96a7728366af2c5c360763e10c3b47c293754503a753dfeefb2",
-    "template-delta-2.svg": "fdc08b8176197188979d3bdde7fae2f7a7121b06485c5d9b7066d6ac47f84257"
+    "template-delta-1.mmd": "2390cad92ac153ce134e5914cb78e00e8e6ff787603ee0493e50cab137766e9d",
+    "template-delta-1.png": "43c821efba52b51b84da112abedecea2cee5ec4f82f2e519ee71a6b57f93c2f5",
+    "template-delta-1.svg": "2e0b0ed450d390660f14c540f7c0e2ac7751a1987e031a87aeb0de3efaa826b4",
+    "template-delta-2.mmd": "3b5e608ff51a64988032778139758d3736d5ec8bb8610dfa29fbe448ea988b86",
+    "template-delta-2.png": "34b658c4355c00b5ba2d02a8da53c925e90e50bbfe9491bca4df4733dacdf373",
+    "template-delta-2.svg": "1aa1d92e587bb65109dd2fcd15f09b98bc46414fd0d9b54249a45d5b48e500e9"
   }
 }

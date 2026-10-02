@@ -46,7 +46,7 @@ flowchart TD
     TPL[(Shared template)] -->|needed for delta| CAND
     CAND --> PICK[Select the smallest modeled cost]
     CAND --> DELTA[Also evaluate delta-only policy]
-    BASE --> COST[Count payload and modeled metadata]
+    BASE --> COST[Count payload, headers and indexes]
     PICK --> COST
     DELTA --> COST
     COST --> COMP[Compare with and without full template charge]
@@ -90,11 +90,14 @@ On sparse pages, the retained whole-corpus encode medians were 25.4842 ms for th
 
 The practical value is a cost decision made before anyone touches a sandbox engine. If a team expects many workers to make small edits from the same template, the lab shows whether full cost, template included, beats the better of zlib and deduplication plus zlib for that page pattern, and whether the template is truly free because it is already kept for another reason. If it is not, the sparse result says that simple deduplication may be the better choice.
 
+A useful break-even question is whether the accumulated saving on changed pages exceeds the extra cost of retaining their template. If the selected representations save 100 KiB compared with the best baseline but require another 256 KiB of template, the overall storage decision is unfavorable. These numbers are an illustrative calculation, not another benchmark result. If the template would remain resident anyway, its additional retention cost may instead be zero. That is why the two accounting scenarios answer different questions.
+
+More workers could spread a fixed template cost across more useful deltas, but worker count alone is not enough. Their pages need to stay similar, and their lifetimes need to overlap while that template is retained. A team should measure those conditions in its own workload. Headers and indexes already counted in the codec comparison should not be charged twice. Temporary encoder buffers and the runtime’s own object allocations still need separate measurement before translating a byte-model result into a capacity recommendation.
+
 The codec accepts page bytes, but the CLI generates synthetic inputs and has no snapshot importer or virtual machine hook. The path below is a proposal for a future offline assessment.
 
 ```mermaid
 flowchart TD
-    subgraph PROP[Proposed integration, no snapshot importer yet]
         SNAP[Offline snapshot export] --> ADP[Adaptor into lab page input]
         TPL[Immutable versioned template] --> ADP
         MAP[Page to template index map] --> ADP
@@ -102,10 +105,9 @@ flowchart TD
         LAB --> GATE{Exact restore and full cost including template}
         GATE -->|fails| STOP[Keep the existing approach]
         GATE -->|passes| ENG[Later engine integration with RAM and latency tests]
-    end
 ```
 
-*Figure 3. A proposed offline integration path. No importer, snapshot adaptor or engine hook exists in the repository today.*
+*Figure 3. How an offline assessment would connect exported pages and their template to the lab before a later engine integration.*
 
 
 The contract is small. The export supplies changed pages, the template must be immutable and versioned so an index always means the same bytes, and the map says which template page each worker page came from. Only a pass on exact restore and full cost would justify engine work. A deployment would then need a managed template lifecycle, a real serialization format with checksums, real sandbox traces and end-to-end measurements of RAM and latency, none of which is implemented here. Resident memory, latency and worker capacity remain unmeasured, so this lab shows no real RAM or cloud savings.
