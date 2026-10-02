@@ -70,9 +70,9 @@ A separate control asks what happens when the reference is poor. In the wrong-te
 
 ## 6. The cost decision when the template is counted
 
-![Stored space per 100 original units. Compress each copy 35.0. Also remove exact copies 22.4. Our approach with shared original 3.4. Our approach counting the original too 30.4. Lower is better.](diagrams/measured-results.png)
+![Modeled stored bytes per 100 raw bytes. Zlib 35.0. Deduplication plus zlib 22.4. Per-page choice of raw, zlib or delta with an already-shared template 3.4, and with the full template charged 30.4. Lower is better.](diagrams/measured-results.png)
 
-*Figure 2. Median stored bytes per 100 raw bytes of changed pages in the sparse family, across ten fixed seeds with eight simulated workers. Shorter bars are better. The last bar charges the full 256 KiB template to the selector. These are modeled stored bytes, not RAM use or money saved.*
+*Figure 2. Median stored bytes per 100 raw bytes of changed pages in the sparse family, across ten fixed seeds with eight simulated workers. Shorter bars are better. The last two bars use min_page, which chooses raw, zlib or delta for each page; they are not delta-only results. The last bar charges the full 256 KiB template to the selector. These are modeled stored bytes, not RAM use or money saved.*
 
 For sparse pages, zlib alone kept 35.0 bytes per 100 raw, and dedup plus zlib kept 22.4. The selector kept 3.4 when the template was treated as already shared. That result follows from construction, since sparse pages change exactly two blocks.
 
@@ -88,7 +88,7 @@ On sparse pages, the retained whole-corpus encode medians were 25.4842 ms for th
 
 ## 8. Using the lab before an integration
 
-The practical value is a cost decision made before anyone touches a sandbox engine. If a team expects many workers to make small edits from the same template, the lab shows whether full cost, template included, beats the better of zlib and deduplication plus zlib for that page pattern, and whether the template is truly free because it is already kept for another reason. If it is not, the sparse result says that simple deduplication may be the better choice.
+The practical value is a cost decision made before anyone touches a sandbox engine. If a team expects many workers to make small edits from the same template, the lab shows whether modeled stored bytes with a full-template charge beat the better of zlib and deduplication plus zlib for that page pattern, and whether the template is truly free because it is already kept for another reason. If it is not, the sparse result says that simple deduplication may be the better choice.
 
 A useful break-even question is whether the accumulated saving on changed pages exceeds the extra cost of retaining their template. If the selected representations save 100 KiB compared with the best baseline but require another 256 KiB of template, the overall storage decision is unfavorable. These numbers are an illustrative calculation, not another benchmark result. If the template would remain resident anyway, its additional retention cost may instead be zero. That is why the two accounting scenarios answer different questions.
 
@@ -102,7 +102,7 @@ flowchart TD
         TPL[Immutable versioned template] --> ADP
         MAP[Page to template index map] --> ADP
         ADP --> LAB[Compare with the best of zlib and dedup plus zlib]
-        LAB --> GATE{Exact restore and full cost including template}
+        LAB --> GATE{Exact restore and modeled bytes including template}
         GATE -->|fails| STOP[Keep the existing approach]
         GATE -->|passes| ENG[Later engine integration with RAM and latency tests]
 ```
@@ -110,7 +110,7 @@ flowchart TD
 *Figure 3. How an offline assessment would connect exported pages and their template to the lab before a later engine integration.*
 
 
-The contract is small. The export supplies changed pages, the template must be immutable and versioned so an index always means the same bytes, and the map says which template page each worker page came from. Only a pass on exact restore and full cost would justify engine work. A deployment would then need a managed template lifecycle, a real serialization format with checksums, real sandbox traces and end-to-end measurements of RAM and latency, none of which is implemented here. Resident memory, latency and worker capacity remain unmeasured, so this lab shows no real RAM or cloud savings.
+The contract is small. The export supplies changed pages, the template must be immutable and versioned so an index always means the same bytes, and the map says which template page each worker page came from. Exact restoration and fewer modeled stored bytes after charging the full template would justify an engine experiment. That comparison still excludes page tables, allocator slack, process overhead and encoding working memory. A deployment would then need a managed template lifecycle, a real serialization format with checksums, real sandbox traces and end-to-end measurements of RAM and latency, none of which is implemented here. Resident memory, latency and worker capacity remain unmeasured, so this lab shows no real RAM or cloud savings.
 
 ## 9. Reproduce it and the next experiment
 
@@ -128,5 +128,5 @@ python3 verify_results.py results/replay/primary results/replay/wrong
 
 Seventeen unit tests should pass. Each full run writes 450 rows and performs 170,295 page round trips, so both runs together give 900 rows and 340,590 round trips. Those rows include three timing repeats per configuration, so they are not 900 independent workloads. The recorded environment is Python 3.12.0 with zlib 1.2.12. The verifier treats runtime versions as diagnostics while enforcing code and data hashes, input identity and byte accounting. Different compression output can still fail reproduction. Raw timings are expected to vary.
 
-The next experiment I would run is the offline path in Figure 3 with real exported pages, a fixed template and an index map, applying the same paired comparison and the same template charge. If the selector cannot beat the better of zlib and deduplication plus zlib once its template is paid for, the right answer is to stop before engine work. The decision should follow the complete retained cost, including what the changes depend on. A small delta by itself is not the whole result.
+The next experiment I would run is the offline path in Figure 3 with real exported pages, a fixed template and an index map, applying the same paired comparison and the same template charge. If the selector cannot beat the better of zlib and deduplication plus zlib once its template is paid for, the right answer is to stop before engine work. The decision should include the template the changes depend on, then be tested against the runtime costs the byte model leaves out. A small delta by itself is not the whole result.
 

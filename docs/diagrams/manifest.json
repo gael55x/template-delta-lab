@@ -2,12 +2,12 @@
   "source": "Original project diagrams, authored with Claude Opus 5.5 and independently reviewed by Codex",
   "renderer": "12.0.0",
   "outputs": {
-    "measured-results.png": "853cbf233feaa01bfd9f5114be5af6ff680452040091ac944d919a08f4cd3256",
+    "measured-results.png": "40cab38138e3a8059f70c531af38fcd4509c85b09ce7a636e0e4be435196dce3",
     "template-delta-1.mmd": "2390cad92ac153ce134e5914cb78e00e8e6ff787603ee0493e50cab137766e9d",
     "template-delta-1.png": "43c821efba52b51b84da112abedecea2cee5ec4f82f2e519ee71a6b57f93c2f5",
     "template-delta-1.svg": "2e0b0ed450d390660f14c540f7c0e2ac7751a1987e031a87aeb0de3efaa826b4",
-    "template-delta-2.mmd": "3b5e608ff51a64988032778139758d3736d5ec8bb8610dfa29fbe448ea988b86",
-    "template-delta-2.png": "34b658c4355c00b5ba2d02a8da53c925e90e50bbfe9491bca4df4733dacdf373",
-    "template-delta-2.svg": "1aa1d92e587bb65109dd2fcd15f09b98bc46414fd0d9b54249a45d5b48e500e9"
+    "template-delta-2.mmd": "73066a78b4e70b3504c1900e48b69cb005d0c29453783f6f1a52a530621a12c3",
+    "template-delta-2.png": "31d6ca9fa73e6876fa9ea70855869ef23c9e6db78d67d18e2aee35fb458c8fb2",
+    "template-delta-2.svg": "2f5464e32115d777983d445740af2a6dea875978e60dd4a5d8b220e1b76cda74"
   }
 }

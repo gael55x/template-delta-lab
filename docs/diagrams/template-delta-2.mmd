@@ -3,6 +3,6 @@ flowchart TD
         TPL[Immutable versioned template] --> ADP
         MAP[Page to template index map] --> ADP
         ADP --> LAB[Compare with the best of zlib and dedup plus zlib]
-        LAB --> GATE{Exact restore and full cost including template}
+        LAB --> GATE{Exact restore and modeled bytes including template}
         GATE -->|fails| STOP[Keep the existing approach]
         GATE -->|passes| ENG[Later engine integration with RAM and latency tests]
