@@ -1,28 +1,50 @@
-# Why Storing Only the Changes Can Still Use More Space
+# How I Built a Python Lab to Test Whether Storing Only Changes Really Saves Space
 
-*Following one changed page and its shared template through encoding, selection, restore and the final cost decision*
+*Compare compression, shared copies, and template deltas on the same data before committing to a more complicated storage design*
 
-Eight AI coding workers start from the same base image, a shared starting setup containing their software. One fixes a bug, one runs tests, one reviews a change. Each needs isolated memory, yet most of what they load is identical. Now suppose one worker writes into a page, a 4,096-byte chunk of memory, and changes two of its 64-byte blocks. The page no longer matches the original, so it cannot simply be shared. Storing only those two blocks sounds like an easy win.
+Suppose you are building a group of AI coding workers from the same starting environment. They load much of the same software, then change different parts of their memory as they work. You want to keep those workers isolated without keeping more copies of similar data than necessary.
 
-This article follows that changed page, and the template it came from, through encoding, selection, exact restore and the final cost decision. The research starting point is [Memory Compression for High-Fanout Agent Sandboxes (AgentZip), arXiv 2609.11294v1](https://arxiv.org/html/2609.11294v1) (Li et al., 2026). I built a proof of concept based on the paper, and the code is in [Template Delta Lab](https://github.com/gael55x/template-delta-lab) (Amolong, 2026). The AI workers motivate the problem, but my input is synthetic pages generated in Python, not memory captured from a live virtual machine.
+There are several ways to approach that problem. Compress each copy. Store identical copies once. Or keep a common starting copy and record only what each worker changes. Choosing between them means comparing what each approach has to retain, including the original data needed to reconstruct the changes.
 
-In the small-edit comparison, the selector wins when the template is already resident. Charging for that template reverses the result in all ten seeds. Following the bytes through the implementation explains both outcomes—and gives infrastructure teams a better question to ask before attempting an integration.
+I built a proof of concept based on the template-delta technique in [Memory Compression for High-Fanout Agent Sandboxes (AgentZip), arXiv 2609.11294v1](https://arxiv.org/html/2609.11294v1) (Li et al., 2026). [Template Delta Lab](https://github.com/gael55x/template-delta-lab) (Amolong, 2026) is a small Python comparison tool that gives each method the same data, reconstructs every result, and counts the bytes required by its storage model.
 
-## 1. What AgentZip proposes and what I tested
+The lab runs today on synthetic memory pages, small chunks of bytes representing what a worker might change. It does not manage a running worker’s RAM. Its useful output is a comparison you can reproduce before deciding whether a template-based design deserves an integration experiment. Below, I’ll run that comparison, explain the parts that produce it, and show why the template changes the decision.
 
-AgentZip targets many agent sandboxes forked from common templates. It combines several memory compression techniques and plans when to compress pages and when to bring them back. The idea I worked from, in section 4.2.2, stores a page as its difference from the template page it began as. The paper's memory measure treats that common template as shared and leaves it out of the total.
+## 1. Run the comparison and see what it returns
 
-My proof of concept isolates the template delta mechanism offline in standard-library Python and counts modeled stored bytes. There is no kernel work, no virtual machine and no scheduling. I added a question the paper's setup does not need to ask, namely what happens when the delta method must pay for keeping the template. That explores a different deployment, not an error in the paper. I froze the inputs and analysis plan in a preregistration before running the first baseline.
+The lab needs only the standard library. From the repository root, these commands run the unit tests, both experiments into new directories and the independent verifier.
 
-## 2. The synthetic setup
+```sh
+git clone https://github.com/gael55x/template-delta-lab
+cd template-delta-lab
+python3 -m unittest test_poc test_verify_results -v
+mkdir -p results/replay
+python3 poc.py --out results/replay/primary
+python3 poc.py --wrong-template --out results/replay/wrong
+python3 verify_results.py results/replay/primary results/replay/wrong
+```
 
-Every page is 4,096 bytes, split into 64 blocks of 64 bytes. There are 64 template pages, standing in for a shared base image, and eight simulated workers derive their pages from them. Three input families cover the range. Sparse pages change two blocks and include exact duplicates. Heavy pages change much more. Random pages hold unrelated data with little in common with any template. Each family runs across ten fixed seeds, so a rerun produces the same bytes, and every configuration repeats three times for timing.
+Seventeen unit tests should pass. The two experiment commands write raw measurements and summaries into separate directories; the verifier checks that they used identical inputs and followed the same byte accounting. The recorded environment is Python 3.12.0 with zlib 1.2.12. Different compression output can fail reproduction even when the code runs correctly, and raw timings will vary.
 
-The model treats pages identical to their template as already shared and excludes them for every method. This is an accounting assumption, not a measurement of a runtime’s actual copy-on-write state. A real page could become private after a write even if its final bytes match the template. What remains in this comparison are changed pages, where each method faces the same storage decision.
+The first comparison to look at is the small-edit, or sparse, family. Per 100 raw bytes of changed pages, the selector kept a median 3.4 when the template was already shared. Deduplication plus compression kept 22.4. Charging the selector for the full template raised its total to 30.4. Those are modeled byte counts, not measurements of RAM or cloud savings. The rest of the tool exists to make that comparison reproducible and explain what drives it.
 
-## 3. Encoding the changed page
+Open `results/replay/primary/summary.csv` to compare the sparse family’s shared and charged results. The [preregistration](https://github.com/gael55x/template-delta-lab/blob/main/PREREGISTRATION.md) records the frozen inputs and analysis, and the [comparison report](https://github.com/gael55x/template-delta-lab/blob/main/COMPARISON.md) explains the paired statistics and repeated measurements.
 
-The encoder compares the worker's page with its template block by block. It builds an 8-byte bitmap, one bit per block, marking which blocks differ, and appends the changed blocks in order. The modeled cost is an 8-byte header, the 8-byte bitmap and 64 bytes per changed block, so two changed blocks cost 8 + 8 + 128, or 144 bytes, against 4,096 for the raw page. This example uses the lab's real codec from the repository root.
+## 2. Put three storage choices on the same input
+
+AgentZip targets many agent sandboxes forked from common templates. It combines several memory compression techniques and plans when to compress pages and when to bring them back. The part I isolated, from section 4.2.2, stores a page as its difference from the template page it started as. The paper's memory measure treats that template as shared and leaves it out of the total. That accounting is reasonable in its setting, where the template is already resident for other reasons.
+
+The lab keeps only the template delta mechanism, with no kernel work, virtual machine or scheduling. It adds a question the paper's setting does not need to ask, which is what happens when the delta method must pay for keeping its template. This describes a different deployment, not a correction to the paper.
+
+Memory is divided into pages, and the same page in two forked workers often looks nearly identical. There are three everyday ways to store such pages. You can compress each copy on its own. You can notice when two pages are exactly identical and keep a single shared copy. Or you can keep the original template page and store each worker's page as the few places where it differs.
+
+In the lab, the first strategy is zlib applied to each page. The second is deduplication plus zlib, which hashes each page, confirms matches with a full byte comparison, stores each distinct page once and pays for index entries and reference counts. It is the strongest baseline on the sparse family, while plain zlib wins on the heavy and random inputs. Deduplication cannot merge pages that differ by a single byte, which is the gap the third strategy, the template delta, aims to fill.
+
+The inputs are small and fixed. Every page is 4,096 bytes, split into 64 blocks of 64 bytes. Sixty-four template pages stand in for a base image, and eight simulated workers derive their pages from them. Sparse pages change two blocks and include exact duplicates, heavy pages change many more, and random pages hold unrelated data. Each family runs across ten fixed seeds. Pages identical to their template are treated as shared and excluded for every method. That is an accounting assumption rather than a measurement of copy-on-write state, since a real page can become private after a write even when its final bytes match. The comparison therefore covers changed pages, where every method faces the same choice.
+
+## 3. Build a page from its original and its changes
+
+The encoder compares a worker's page with its template block by block. It builds an 8-byte bitmap, one bit per block, marking which blocks differ, and appends the changed blocks in order. The modeled cost is an 8-byte header, the bitmap and 64 bytes per changed block. A page with two changed blocks therefore costs 8 + 8 + 128, or 144 bytes, against 4,096 raw. This example runs the lab's real codec from the repository root.
 
 ```python
 from poc import BLOCK, PAGE, load_page, store_delta, stored_cost
@@ -33,11 +55,11 @@ print(stored_cost(encoded))
 print(load_page(encoded, [original]) == changed)
 ```
 
-It prints `144` and `True`, so the page is restored exactly from the template plus two stored blocks. This demonstrates the codec rather than a winning benchmark, because a page of mostly zeros like this one may compress even smaller with zlib. Making that comparison for every page is the selector's job.
+It prints `144` and `True`, meaning the page is rebuilt exactly from the template plus two stored blocks. That demonstrates the codec rather than a winning result, because a page of mostly zeros like this one may compress even smaller with zlib.
 
-The header is an accounting model, not a wire format. Its 64 bits are budgeted as 2 for a codec tag, 12 for length, 6 for the template index and 44 for location, so the index costs nothing beyond the 8 bytes. In code, encoded objects are trusted in-process tuples such as `('d', j, blob)`, produced and consumed only by `poc.py`. The template index `j` is explicit, but nothing verifies that the template behind `j` holds the expected content. A real system would need versioned template identity and validation, which I propose rather than implement.
+The byte count includes a modeled 8-byte header for identifying and locating the stored representation. Its bit allocation is documented in [the implementation notes](https://github.com/gael55x/template-delta-lab/blob/main/IMPLEMENTATION.md). The lab has not implemented that header as a binary storage format.
 
-## 4. Choosing the cheapest form for each page
+## 4. Let the smallest valid representation win
 
 ```mermaid
 flowchart TD
@@ -58,7 +80,7 @@ flowchart TD
 *Figure 1. The implemented pipeline. Every method receives the same changed pages, the delta paths need the template, the selector keeps the cheapest candidate, and every restored page must match its input byte for byte.*
 
 
-The selector in `poc.py` builds three stored forms of each changed page and keeps whichever one the cost model counts as smallest. These functions are taken from the lab; the encoder and accounting helpers they call live in the same file.
+The delta-only method tries to encode each changed page against its template and keeps raw bytes when the delta would be larger. The selector in `poc.py` builds three stored forms of each changed page and keeps whichever the cost model counts as smallest. These functions come from the lab, and the encoder and accounting helpers they call live in the same file.
 
 ```python
 def cheapest(candidates):
@@ -70,45 +92,39 @@ def store_min(page, template, j):
     return cheapest((('r', page), store_page(page), store_delta(page, template, j)))
 ```
 
-`('r', page)` means raw bytes. `store_page` tries zlib, and `store_delta` tries a difference from template page `j`; either keeps the page raw if encoding would not shrink it. `stored_cost` counts a raw page at 4,096 bytes or adds an 8-byte header to an encoded payload. `min` keeps the first tied candidate, so raw wins ties over zlib, then delta. The full-template charge is applied later, outside this per-page choice.
+`('r', page)` is the raw page. `store_page` tries zlib and `store_delta` tries a difference from template page `j`, and either keeps the page raw if encoding would not shrink it. `stored_cost` counts a raw page as 4,096 bytes or adds an 8-byte header to an encoded payload. `min` keeps the first tied candidate, so raw wins ties over zlib, then delta. Because zlib is always a candidate, the selector never stores a page larger than zlib would before any template charge. The full-template charge is applied later, outside this per-page choice. The chart's last two bars therefore show the selector, not delta-only storage.
 
-The selector runs every encoder on every page, so smaller stored output comes with extra CPU work.
-
-A separate baseline combines exact deduplication with zlib. It is the strongest baseline on the sparse family, while ordinary zlib wins on the heavy and random inputs. It hashes each page, confirms matches with a full byte comparison, stores each distinct page once and pays for its index entries and reference counts. It cannot merge pages that differ by a single byte, which is exactly the gap the delta is meant to fill.
-
-## 5. Restoring exactly and checking the reference
-
-A storage saving means nothing if the page comes back wrong. The decoder copies unchanged blocks from the template, fills in the stored ones and asserts that the blob length matches the number of set bits. Every page from every method goes through a round trip and must equal its input exactly, and any mismatch aborts the run.
-
-A separate control asks what happens when the reference is poor. In the wrong-template run, each page derived from template i is encoded against template (i + 1) mod 64. Encoder and decoder both use the shifted index stored in the object, so every round trip still passes. This tests a worse reference choice, not a corrupted restore. The selector's totals then matched zlib in every family, so sparse lost to dedup plus zlib by a paired median of 12.8556 percent of raw bytes, while heavy and random tied their best baseline. The quality of the reference determines whether the delta adds value beyond ordinary compression.
-
-## 6. The cost decision when the template is counted
+## 5. Read the result with the template included
 
 ![Modeled stored bytes per 100 raw bytes. Zlib 35.0. Deduplication plus zlib 22.4. Per-page choice of raw, zlib or delta with an already-shared template 3.4, and with the full template charged 30.4. Lower is better.](diagrams/measured-results.png)
 
 *Figure 2. Median stored bytes per 100 raw bytes of changed pages in the sparse family, across ten fixed seeds with eight simulated workers. Shorter bars are better. The last two bars use min_page, which chooses raw, zlib or delta for each page; they are not delta-only results. The last bar charges the full 256 KiB template to the selector. These are modeled stored bytes, not RAM use or money saved.*
 
-For sparse pages, zlib alone kept 35.0 bytes per 100 raw, and dedup plus zlib kept 22.4. The selector kept 3.4 when the template was treated as already shared. That result follows from construction, since sparse pages change exactly two blocks.
+For sparse pages, zlib alone kept 35.0 bytes per 100 raw and deduplication plus zlib kept 22.4. With the template treated as shared, the selector kept 3.4. That result follows from construction, since sparse pages change exactly two blocks.
 
-The sensitivity run then charges the template, 64 pages of 4,096 bytes or 262,144 bytes, once per family and seed, to delta and the selector only. The selector rises to 30.4, now worse than dedup plus zlib. The paired numbers make this sharper. For each seed I subtract the best baseline's total from the selector's total on identical input. With the template shared, the selector won all ten seeds by a median 18.9451 percentage points of raw bytes. Charged, it lost all ten by a median 8.7833 points. Subtracting the chart's medians would give 8.0, which is why paired statistics are computed per seed.
+The sensitivity run then charges the template, 64 pages of 4,096 bytes or 262,144 bytes, once per family and seed, to delta and the selector only. The selector rises to 30.4, now worse than deduplication plus zlib. For each seed, I subtracted the best baseline's total from the selector's total on identical input. With the template shared, the selector won all ten seeds by a median 18.9451 percentage points of raw bytes. With it charged, the selector lost all ten by a median 8.7833 points. Subtracting the chart's medians would suggest 8.0, which is why the lab computes paired differences per seed.
 
-The other families show why the template cost matters even when the initial saving is small or absent. Heavy pages gave the selector a tiny shared-template win of 0.449 points and a charged loss of 15.9071. Random pages stayed raw, dedup added exactly 40 bytes of overhead per page, and the charge alone cost 12.5 points.
+The other families show the charge matters even when the initial saving is small or absent. Heavy pages gave the selector a shared-template win of 0.449 points and a charged loss of 15.9071. Random pages stayed raw, deduplication added exactly 40 bytes of overhead per page, and the charge alone cost 12.5 points.
 
-The charge is conservative on purpose. It applies even when no delta is selected, as with random pages, where a decoder would not need the template. That follows the preregistered whole-template scenario. The paper measures a world where the template is already resident for other reasons, and in that world its accounting is reasonable.
+The charge is deliberately conservative. Following the preregistered whole-template scenario, it applies unconditionally, even when no delta is selected and a decoder would never need the template, as with random pages.
 
-## 7. What the selector costs in CPU
+### Make sure the stored page comes back intact
 
-On sparse pages, the retained whole-corpus encode medians were 25.4842 ms for the selector, 21.7359 ms for zlib and 14.1304 ms for dedup plus zlib. The selector does more encoding work because it runs zlib and builds a delta for every page; it was slower in this retained run. These numbers are exploratory. Methods ran in a fixed order without explicit warmup, timings include interpreter overhead and the machine was a shared laptop. They show that the extra work exists, not which method is fastest in a real system.
+A storage saving means nothing if a page comes back wrong. The decoder copies unchanged blocks from the template, fills in the stored ones and asserts that the stored data length matches the number of set bits. Every page from every method goes through a round trip and must equal its input exactly, and any mismatch aborts the run.
 
-## 8. Using the lab before an integration
+Encoded objects are trusted in-process tuples such as `('d', j, blob)`, produced and consumed only by `poc.py`. The index `j` names the template page to use, but nothing verifies that the page behind `j` holds the expected bytes. An index is a reference, not an identity. A real system would need versioned template identity and validation, which I propose rather than implement.
 
-The practical value is a cost decision made before anyone touches a sandbox engine. If a team expects many workers to make small edits from the same template, the lab shows whether modeled stored bytes with a full-template charge beat the better of zlib and deduplication plus zlib for that page pattern, and whether the template is truly free because it is already kept for another reason. If it is not, the sparse result says that simple deduplication may be the better choice.
+A wrong-template control asks what a poor reference costs. Each page derived from template i is encoded against template (i + 1) mod 64. Encoder and decoder both use the shifted index stored in the object, so every round trip still passes, and the control tests a worse reference choice rather than a corrupted restore. The selector's totals then matched zlib in every family. Sparse lost to deduplication plus zlib by a paired median of 12.8556 percent of raw bytes, while heavy and random tied their best baseline. In this control, losing the useful reference removed the delta’s advantage over ordinary compression.
 
-A useful break-even question is whether the accumulated saving on changed pages exceeds the extra cost of retaining their template. If the selected representations save 100 KiB compared with the best baseline but require another 256 KiB of template, the overall storage decision is unfavorable. These numbers are an illustrative calculation, not another benchmark result. If the template would remain resident anyway, its additional retention cost may instead be zero. That is why the two accounting scenarios answer different questions.
+## 6. Decide whether the saving justifies the extra machinery
 
-More workers could spread a fixed template cost across more useful deltas, but worker count alone is not enough. Their pages need to stay similar, and their lifetimes need to overlap while that template is retained. A team should measure those conditions in its own workload. Headers and indexes already counted in the codec comparison should not be charged twice. Temporary encoder buffers and the runtime’s own object allocations still need separate measurement before translating a byte-model result into a capacity recommendation.
+The selector runs zlib and builds a delta for every page, so its smaller output comes with more encoding work. On sparse pages, the retained whole-corpus encode medians were 25.4842 ms for the selector, 21.7359 ms for zlib and 14.1304 ms for deduplication plus zlib. These timings are exploratory. Methods ran in a fixed order without explicit warmup, the figures include interpreter overhead and the machine was a shared laptop. They show that the extra work exists, not which method is fastest in a real system.
 
-The codec accepts page bytes, but the CLI generates synthetic inputs and has no snapshot importer or virtual machine hook. The path below is a proposal for a future offline assessment.
+The decision turns on the template's incremental retention cost. If the template stays resident anyway, for instance because workers already share it, that cost may be zero and the shared scenario applies. If retaining it is a new cost, the accumulated saving on changed pages must exceed it. Selected representations that save 100 KiB against the best baseline while requiring another 256 KiB of template leave the overall decision unfavorable. Those figures are an illustration, not another benchmark result.
+
+More workers can spread a fixed template cost across more useful deltas, but worker count alone is not enough. Their pages must stay similar to the template, and their lifetimes must overlap while it is retained. The extra CPU also needs a budget. Headers and indexes are already counted in the codec comparison and should not be charged twice. Temporary encoder buffers and runtime object allocations still need measurement before a byte-model result can inform any capacity recommendation, and future work would need real RAM measurements.
+
+The codec accepts page bytes, but the CLI only generates synthetic inputs and has no snapshot importer or virtual machine hook. Figure 3 shows how an offline export could connect to the existing lab. The exporter, adapter and engine integration still need to be built.
 
 ```mermaid
 flowchart TD
@@ -124,29 +140,13 @@ flowchart TD
 *Figure 3. How an offline assessment would connect exported pages and their template to the lab before a later engine integration.*
 
 
-The contract is small. The export supplies changed pages, the template must be immutable and versioned so an index always means the same bytes, and the map says which template page each worker page came from. Exact restoration and fewer modeled stored bytes after charging the full template would justify an engine experiment. That comparison still excludes page tables, allocator slack, process overhead and encoding working memory. A deployment would then need a managed template lifecycle, a real serialization format with checksums, real sandbox traces and end-to-end measurements of RAM and latency, none of which is implemented here. Resident memory, latency and worker capacity remain unmeasured, so this lab shows no real RAM or cloud savings.
+The proposed contract is small. An export supplies changed pages. The template is immutable and versioned so an index always means the same bytes. A map records which template page each worker page came from. Exact restoration plus fewer modeled stored bytes after charging the full template would justify an engine experiment. That comparison still leaves out page tables, allocator slack, process overhead and encoding working memory. A deployment would further need a managed template lifecycle, a serialization format with checksums, real sandbox traces and end-to-end RAM and latency measurements.
 
-## 9. Reproduce it and the next experiment
+## 7. Conclusion and how this helps you
 
-The lab uses only the standard library. From the repository root, run the tests, both experiments into new directories and the independent verifier.
+Template Delta Lab gives you a repeatable way to test whether storing only the changes saves modeled space after accounting for the shared template. Each changed page competes against its raw and zlib forms. Deduplication plus zlib serves as a strong baseline, and the template is reported both as shared and as charged. On sparse synthetic pages, the selector wins clearly when the template is free and loses in every seed when it must be paid for.
 
-```sh
-git clone https://github.com/gael55x/template-delta-lab
-cd template-delta-lab
-python3 -m unittest test_poc test_verify_results -v
-mkdir -p results/replay
-python3 poc.py --out results/replay/primary
-python3 poc.py --wrong-template --out results/replay/wrong
-python3 verify_results.py results/replay/primary results/replay/wrong
-```
-
-Seventeen unit tests should pass. Each full run writes 450 rows and performs 170,295 page round trips, so both runs together give 900 rows and 340,590 round trips. Those rows include three timing repeats per configuration, so they are not 900 independent workloads. The recorded environment is Python 3.12.0 with zlib 1.2.12. The verifier treats runtime versions as diagnostics while enforcing code and data hashes, input identity and byte accounting. Different compression output can still fail reproduction. Raw timings are expected to vary.
-
-## 10. Conclusion and how this helps you
-
-This experiment shows why a small delta is not automatically the best storage choice. Every changed page competes against its raw and zlib forms, and a delta that wins per page can still lose overall once its template is paid for. If you are weighing template deltas for forked workloads, the lab lets you frame that decision in modeled stored bytes before any engine work.
-
-The results come from synthetic pages and a stored-byte model, so they establish no real RAM or cloud saving. As a next step, run the tests and the primary experiment from a fresh clone, then compare the shared and charged template totals against the better of zlib and deduplication plus zlib for the input family closest to the page pattern you expect.
+To apply this to your own workload, run the tests and primary experiment from a fresh clone. Pick the input family closest to the page pattern you expect, and compare the shared and charged totals against the better of zlib and deduplication plus zlib. Then estimate whether your template would stay resident anyway, how similar your workers' pages remain and how long they overlap. Those answers tell you whether an offline export along the lines of Figure 3 is worth building.
 
 ## References
 
