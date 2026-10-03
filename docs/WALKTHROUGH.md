@@ -2,9 +2,9 @@
 
 *Following one changed page and its shared template through encoding, selection, restore and the final cost decision*
 
-Eight AI coding workers start from the same base image. One fixes a bug, one runs tests, one reviews a change. Each needs isolated memory, yet most of what they load is identical. Now suppose one worker writes into a 4,096-byte page and changes two of its 64-byte blocks. The page no longer matches the original, so it cannot simply be shared. Storing only those two blocks sounds like an easy win.
+Eight AI coding workers start from the same base image, a shared starting setup containing their software. One fixes a bug, one runs tests, one reviews a change. Each needs isolated memory, yet most of what they load is identical. Now suppose one worker writes into a page, a 4,096-byte chunk of memory, and changes two of its 64-byte blocks. The page no longer matches the original, so it cannot simply be shared. Storing only those two blocks sounds like an easy win.
 
-This article follows that changed page, and the template it came from, through encoding, selection, exact restore and the final cost decision. The research starting point is [Memory Compression for High-Fanout Agent Sandboxes (AgentZip), arXiv 2609.11294v1](https://arxiv.org/html/2609.11294v1). I built a proof of concept based on the paper, and the code is in [Template Delta Lab](https://github.com/gael55x/template-delta-lab). The AI workers motivate the problem, but my input is synthetic pages generated in Python, not memory captured from a live virtual machine.
+This article follows that changed page, and the template it came from, through encoding, selection, exact restore and the final cost decision. The research starting point is [Memory Compression for High-Fanout Agent Sandboxes (AgentZip), arXiv 2609.11294v1](https://arxiv.org/html/2609.11294v1) (Li et al., 2026). I built a proof of concept based on the paper, and the code is in [Template Delta Lab](https://github.com/gael55x/template-delta-lab) (Amolong, 2026). The AI workers motivate the problem, but my input is synthetic pages generated in Python, not memory captured from a live virtual machine.
 
 In the small-edit comparison, the selector wins when the template is already resident. Charging for that template reverses the result in all ten seeds. Following the bytes through the implementation explains both outcomes—and gives infrastructure teams a better question to ask before attempting an integration.
 
@@ -58,7 +58,21 @@ flowchart TD
 *Figure 1. The implemented pipeline. Every method receives the same changed pages, the delta paths need the template, the selector keeps the cheapest candidate, and every restored page must match its input byte for byte.*
 
 
-The selector, `min_page`, builds three candidates for every page in a fixed order, raw, zlib at level 9 and delta, and keeps the lowest stored cost. When two candidates tie, Python's `min` keeps the first, so raw beats zlib and zlib beats delta at equal cost. A compressed or delta form is admitted only if it is smaller than a raw page. A delta can therefore hold at most 63 changed blocks, at 4,048 bytes, while 64 changed blocks would cost 4,112 and stay raw. Because the selector runs every encoder on every page, its storage advantage comes with extra CPU.
+The selector in `poc.py` builds three stored forms of each changed page and keeps whichever one the cost model counts as smallest. These functions are taken from the lab; the encoder and accounting helpers they call live in the same file.
+
+```python
+def cheapest(candidates):
+    """Lowest stored cost; min() keeps the first of equal costs, so pass candidates as raw, zlib, delta."""
+    return min(candidates, key=stored_cost)
+
+
+def store_min(page, template, j):
+    return cheapest((('r', page), store_page(page), store_delta(page, template, j)))
+```
+
+`('r', page)` means raw bytes. `store_page` tries zlib, and `store_delta` tries a difference from template page `j`; either keeps the page raw if encoding would not shrink it. `stored_cost` counts a raw page at 4,096 bytes or adds an 8-byte header to an encoded payload. `min` keeps the first tied candidate, so raw wins ties over zlib, then delta. The full-template charge is applied later, outside this per-page choice.
+
+The selector runs every encoder on every page, so smaller stored output comes with extra CPU work.
 
 A separate baseline combines exact deduplication with zlib. It is the strongest baseline on the sparse family, while ordinary zlib wins on the heavy and random inputs. It hashes each page, confirms matches with a full byte comparison, stores each distinct page once and pays for its index entries and reference counts. It cannot merge pages that differ by a single byte, which is exactly the gap the delta is meant to fill.
 
@@ -78,7 +92,7 @@ For sparse pages, zlib alone kept 35.0 bytes per 100 raw, and dedup plus zlib ke
 
 The sensitivity run then charges the template, 64 pages of 4,096 bytes or 262,144 bytes, once per family and seed, to delta and the selector only. The selector rises to 30.4, now worse than dedup plus zlib. The paired numbers make this sharper. For each seed I subtract the best baseline's total from the selector's total on identical input. With the template shared, the selector won all ten seeds by a median 18.9451 percentage points of raw bytes. Charged, it lost all ten by a median 8.7833 points. Subtracting the chart's medians would give 8.0, which is why paired statistics are computed per seed.
 
-The other families show the same reversal. Heavy pages gave the selector a tiny shared-template win of 0.449 points and a charged loss of 15.9071. Random pages stayed raw, dedup added exactly 40 bytes of overhead per page, and the charge alone cost 12.5 points.
+The other families show why the template cost matters even when the initial saving is small or absent. Heavy pages gave the selector a tiny shared-template win of 0.449 points and a charged loss of 15.9071. Random pages stayed raw, dedup added exactly 40 bytes of overhead per page, and the charge alone cost 12.5 points.
 
 The charge is conservative on purpose. It applies even when no delta is selected, as with random pages, where a decoder would not need the template. That follows the preregistered whole-template scenario. The paper measures a world where the template is already resident for other reasons, and in that world its accounting is reasonable.
 
@@ -128,5 +142,14 @@ python3 verify_results.py results/replay/primary results/replay/wrong
 
 Seventeen unit tests should pass. Each full run writes 450 rows and performs 170,295 page round trips, so both runs together give 900 rows and 340,590 round trips. Those rows include three timing repeats per configuration, so they are not 900 independent workloads. The recorded environment is Python 3.12.0 with zlib 1.2.12. The verifier treats runtime versions as diagnostics while enforcing code and data hashes, input identity and byte accounting. Different compression output can still fail reproduction. Raw timings are expected to vary.
 
-The next experiment I would run is the offline path in Figure 3 with real exported pages, a fixed template and an index map, applying the same paired comparison and the same template charge. If the selector cannot beat the better of zlib and deduplication plus zlib once its template is paid for, the right answer is to stop before engine work. The decision should include the template the changes depend on, then be tested against the runtime costs the byte model leaves out. A small delta by itself is not the whole result.
+## 10. Conclusion and how this helps you
 
+This experiment shows why a small delta is not automatically the best storage choice. Every changed page competes against its raw and zlib forms, and a delta that wins per page can still lose overall once its template is paid for. If you are weighing template deltas for forked workloads, the lab lets you frame that decision in modeled stored bytes before any engine work.
+
+The results come from synthetic pages and a stored-byte model, so they establish no real RAM or cloud saving. As a next step, run the tests and the primary experiment from a fresh clone, then compare the shared and charged template totals against the better of zlib and deduplication plus zlib for the input family closest to the page pattern you expect.
+
+## References
+
+Amolong, G. (2026). *Template delta lab* (Version f25d084) [Computer software]. GitHub. [https://github.com/gael55x/template-delta-lab/tree/f25d0844dd9efe8bde3ceed0f03e3c35206bffad](https://github.com/gael55x/template-delta-lab/tree/f25d0844dd9efe8bde3ceed0f03e3c35206bffad)
+
+Li, M., Xu, C., Zhang, Q., Yu, J., Sun, X., Mai, H., & Xie, Z. (2026). *Memory compression for high-fanout agent sandboxes* [Preprint]. arXiv. [https://doi.org/10.48550/arXiv.2609.11294](https://doi.org/10.48550/arXiv.2609.11294)
